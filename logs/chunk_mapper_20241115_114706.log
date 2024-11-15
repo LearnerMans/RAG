@@ -1,0 +1,6 @@
+2024-11-15 11:47:06,644 - ChunkURLMapper - INFO - Initializing ChunkURLMapper...
+2024-11-15 11:47:06,647 - ChunkURLMapper - INFO - Found 183 URL-content pairs
+2024-11-15 11:47:06,647 - ChunkURLMapper - INFO - Working with 1427 clean chunks
+2024-11-15 11:47:06,647 - ChunkURLMapper - INFO - Initialization took 0.00 seconds
+2024-11-15 11:47:06,648 - ChunkURLMapper - INFO - Exporting mapping to chunk_mapping.json
+2024-11-15 11:47:06,648 - ChunkURLMapper - INFO - Starting mapping creation...

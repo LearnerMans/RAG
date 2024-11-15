@@ -13,7 +13,8 @@ load_dotenv()
 class openai_retriever:
 
     def get_embeddings(self, query):
-        client = OpenAI(os.getenv("OPENAI_API_KEY"))
+        client = OpenAI()
+        client.api_key = os.getenv("OPENAI_API_KEY")
         embedding = client.embeddings.create(
     input=query,
     model="text-embedding-3-large"
@@ -30,7 +31,7 @@ class openai_retriever:
 
         matches = index.query(
             vector=embedding,
-            top_k=10,
+            top_k=5,
             include_metadata=True
         )["matches"]
         # ids = []
