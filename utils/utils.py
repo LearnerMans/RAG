@@ -229,3 +229,220 @@ class ChunkURLMapper:
         
         self.logger.info(f"Export completed in {time.time() - start_time:.2f} seconds")
         self.logger.info(f"Results saved to {output_path}")
+
+
+import re
+from typing import Dict, List
+import numpy as np
+from collections import defaultdict
+import xxhash
+from dataclasses import dataclass
+from tqdm import tqdm
+from concurrent.futures import ProcessPoolExecutor
+
+@dataclass
+class MinHashParams:
+    num_perm: int = 128  # Number of permutations
+    ngram_size: int = 3  # Size of character n-grams
+    hash_bits: int = 64  # Hash size in bits
+    bucket_size: int = 4  # LSH bucket size
+
+from typing import List, Dict, Tuple, Set
+import json
+import logging
+from datetime import datetime
+import time
+from tqdm import tqdm
+import os
+from concurrent.futures import ProcessPoolExecutor
+import numpy as np
+from collections import defaultdict
+import xxhash
+from dataclasses import dataclass
+import re
+
+@dataclass
+class MinHashParams:
+    num_perm: int = 128  # Number of permutations
+    ngram_size: int = 3  # Size of character n-grams
+    hash_bits: int = 64  # Hash size in bits
+    bucket_size: int = 4  # LSH bucket size
+    
+class FastChunkURLMapper:
+    def __init__(
+        self, 
+        clean_chunks: List[str], 
+        raw_content: str,
+        similarity_threshold: float = 0.7,
+        minhash_params: MinHashParams = None,
+        max_workers: int = None,
+        log_level: int = logging.INFO
+    ):
+        self.clean_chunks = clean_chunks
+        self.similarity_threshold = similarity_threshold
+        self.max_workers = max_workers or os.cpu_count()
+        self.minhash_params = minhash_params or MinHashParams()
+        
+        self._setup_logging(log_level)
+        self.timers = defaultdict(float)
+        
+        start = time.time()
+        self.logger.info("Initializing FastChunkURLMapper...")
+        self.url_content_pairs = self._parse_raw_content(raw_content)
+        self.logger.info(f"Found {len(self.url_content_pairs)} URL-content pairs")
+        self.logger.info(f"Working with {len(clean_chunks)} clean chunks")
+        
+        self.clean_chunk_signatures = self._compute_minhash_signatures(clean_chunks)
+        self.timers['init'] = time.time() - start
+        self.logger.info(f"Initialization took {self.timers['init']:.2f} seconds")
+
+    def _setup_logging(self, log_level: int) -> None:
+        self.logger = logging.getLogger('FastChunkURLMapper')
+        self.logger.setLevel(log_level)
+        
+        if not os.path.exists('logs'):
+            os.makedirs('logs')
+            
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        fh = logging.FileHandler(f'logs/chunk_mapper_{timestamp}.log')
+        ch = logging.StreamHandler()
+        
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        for handler in [fh, ch]:
+            handler.setFormatter(formatter)
+            handler.setLevel(log_level)
+            self.logger.addHandler(handler)
+
+    def _create_ngrams(self, text: str) -> Set[str]:
+        text = re.sub(r'\s+', ' ', text.lower())
+        return {text[i:i+self.minhash_params.ngram_size] 
+                for i in range(len(text) - self.minhash_params.ngram_size + 1)}
+
+    def _compute_minhash_signature(self, text: str) -> np.ndarray:
+        ngrams = self._create_ngrams(text)
+        signature = np.full(self.minhash_params.num_perm, np.inf)
+        
+        for ngram in ngrams:
+            hash_val = xxhash.xxh64(ngram).intdigest()
+            for i in range(self.minhash_params.num_perm):
+                h = xxhash.xxh64(ngram + str(i)).intdigest()
+                signature[i] = min(signature[i], h)
+        return signature
+
+    def _compute_minhash_signatures(self, texts: List[str]) -> np.ndarray:
+        with ProcessPoolExecutor(max_workers=self.max_workers) as executor:
+            signatures = list(tqdm(
+                executor.map(self._compute_minhash_signature, texts),
+                total=len(texts),
+                desc="Computing signatures"
+            ))
+        return np.array(signatures)
+
+    def _estimate_similarity(self, sig1: np.ndarray, sig2: np.ndarray) -> float:
+        return np.mean(sig1 == sig2)
+
+    def _create_lsh_buckets(self, signatures: np.ndarray) -> Dict[tuple, List[int]]:
+        buckets = defaultdict(list)
+        num_bands = self.minhash_params.num_perm // self.minhash_params.bucket_size
+        
+        for idx, sig in enumerate(signatures):
+            for band in range(num_bands):
+                start = band * self.minhash_params.bucket_size
+                end = start + self.minhash_params.bucket_size
+                band_sig = tuple(sig[start:end])
+                buckets[band_sig].append(idx)
+        return buckets
+
+    def _find_similar_chunks(
+        self, 
+        query_signature: np.ndarray, 
+        reference_signatures: np.ndarray,
+        lsh_buckets: Dict[tuple, List[int]]
+    ) -> List[int]:
+        candidates = set()
+        num_bands = self.minhash_params.num_perm // self.minhash_params.bucket_size
+        
+        for band in range(num_bands):
+            start = band * self.minhash_params.bucket_size
+            end = start + self.minhash_params.bucket_size
+            band_sig = tuple(query_signature[start:end])
+            candidates.update(lsh_buckets.get(band_sig, []))
+        
+        similar_chunks = []
+        for candidate_idx in candidates:
+            similarity = self._estimate_similarity(
+                query_signature, 
+                reference_signatures[candidate_idx]
+            )
+            if similarity >= self.similarity_threshold:
+                similar_chunks.append(candidate_idx)
+        return similar_chunks
+
+    def _parse_raw_content(self, raw_content: str) -> List[Tuple[str, str]]:
+        url_content_pairs = []
+        lines = raw_content.splitlines()
+        for i in range(0, len(lines), 3): # Increment by 3 to skip "---"
+            url = lines[i].strip()
+            content = lines[i+1].strip() if i + 1 < len(lines) else "" # Handle potential IndexError
+            if url and content:
+                url_content_pairs.append((url, content))
+        return url_content_pairs
+
+
+    def _process_url_content(
+        self, 
+        url_content: Tuple[str, str], 
+        clean_signatures: np.ndarray,
+        lsh_buckets: Dict[tuple, List[int]]
+    ) -> Tuple[str, List[str]]:
+        url, content = url_content
+        content_signature = self._compute_minhash_signature(content)
+        similar_indices = self._find_similar_chunks(
+            content_signature, 
+            clean_signatures,
+            lsh_buckets
+        )
+        return url, [self.clean_chunks[i] for i in similar_indices]
+
+    def create_mapping(self) -> Dict[str, List[str]]:
+        start = time.time()
+        self.logger.info("Creating LSH buckets...")
+        lsh_buckets = self._create_lsh_buckets(self.clean_chunk_signatures)
+        
+        self.logger.info("Processing URL-content pairs...")
+        mapping = {}
+        with ProcessPoolExecutor(max_workers=self.max_workers) as executor:
+            futures = [
+                executor.submit(
+                    self._process_url_content, 
+                    pair, 
+                    self.clean_chunk_signatures,
+                    lsh_buckets
+                )
+                for pair in self.url_content_pairs
+            ]
+            
+            for future in tqdm(futures, desc="Mapping chunks"):
+                url, chunks = future.result()
+                if chunks:
+                    mapping[url] = chunks
+        
+        self.timers['mapping'] = time.time() - start
+        self.logger.info(
+            f"Mapping completed in {self.timers['mapping']:.2f} seconds. "
+            f"Found matches for {len(mapping)} URLs"
+        )
+        return mapping
+
+    def export_to_json(self, output_path: str) -> None:
+        start = time.time()
+        self.logger.info(f"Exporting mapping to {output_path}")
+        mapping = self.create_mapping()
+        with open(output_path, 'w', encoding='utf-8') as f:
+            json.dump(mapping, f, indent=2, ensure_ascii=False)
+        
+        self.timers['export'] = time.time() - start
+        self.logger.info(
+            f"Export completed in {self.timers['export']:.2f} seconds. "
+            f"Total processing time: {sum(self.timers.values()):.2f} seconds"
+        )

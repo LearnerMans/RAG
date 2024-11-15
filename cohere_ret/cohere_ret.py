@@ -30,7 +30,7 @@ class cohere_retriever:
 
         matches = index.query(
             vector=embedding,
-            top_k=5,
+            top_k=20,
             include_metadata=True
         )["matches"]
         # ids = []
