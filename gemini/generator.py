@@ -8,7 +8,7 @@ genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
 class gemini_generator:
     def __init__(self):
-        self.model = genai.GenerativeModel("gemini-1.5-pro-002")
+        self.model = genai.GenerativeModel("gemini-1.5-flash-002")
 
     
     def generate(self, query, chunks):

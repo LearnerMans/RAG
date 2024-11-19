@@ -27,7 +27,7 @@ class gemini_retriever:
 
         matches = index.query(
             vector=embedding,
-            top_k=5,
+            top_k=10,
             include_metadata=True
         )["matches"]
         # ids = []

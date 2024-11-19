@@ -17,4 +17,4 @@ class cohere_generator:
             model="command-r-08-2024",
             messages=[{"role": "user", "content": prompt}],
             )
-        return response
+        return response.message.content[0].text

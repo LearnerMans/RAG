@@ -3,3 +3,4 @@
 .idx
 ._pycache
 devserver.sh
+evaluator/sss.py
