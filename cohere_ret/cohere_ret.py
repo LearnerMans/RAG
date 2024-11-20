@@ -10,6 +10,9 @@ load_dotenv()
 
 class cohere_retriever:
 
+    def __init__(self,db_name = "cohere-test"):
+        self.db_name = db_name
+
     def get_embeddings(self, query):
         co = cohere.ClientV2(os.getenv("COHERE_API_KEY"))
 
@@ -26,11 +29,11 @@ class cohere_retriever:
 
         pc = Pinecone(os.getenv("PINECONE_API_KEY"))
 
-        index = pc.Index("cohere-test")
+        index = pc.Index(self.db_name)
 
         matches = index.query(
             vector=embedding,
-            top_k=20,
+            top_k=10,
             include_metadata=True
         )["matches"]
         # ids = []

@@ -7,20 +7,13 @@ from trulens.providers.openai import OpenAI
 from dotenv import load_dotenv
 import google.generativeai as genai
 from trulens.apps.custom import instrument
-from trulens.core import TruSession
 from pinecone.grpc import PineconeGRPC as Pinecone
 import numpy as np
-from trulens.core import Feedback
 from trulens.core import Select
-from trulens.providers.openai import OpenAI
 from langchain_google_genai import ChatGoogleGenerativeAI
 from trulens.providers.langchain import Langchain
 from langchain_community.llms import OpenAI
-from trulens.apps.custom import TruCustomApp
-
-
-
-
+from trulens.dashboard import run_dashboard
 load_dotenv()
 
 
@@ -28,15 +21,31 @@ load_dotenv()
 
 
 class RAG_eval:
+    """A RAG Evaluation class utilizing trulens
+
+    Args:
+        retriever (Retriever): Retriever object. It returns a list of similarity match chunks through a get_Chunks method
+        generator (Generator): Generator object. It returns a string of answer generated with an llm through a generate method
+        reset_database (Boolean): specifies wether a user wants to restet trulens session database 
+        cos (Boolean): specifies wether a user wants to use Chain of Thought Reasons generated with LLM 
+        provider_name (Enum(Gemini, OpenAI)): Specifies which provider a user would like to use Gemini is the default 
+        version (string)" enables users to work on multiple versions of the same app and document the differences between them.
+
+    Attributes:
+        Private
+    Methods:
+        run(questions: [string]): runs the evaluation on a list of questions .
+        dashboard(): Spens up a dhashboard based on trulens database 
+    """
     
-    def __init__(self,retriever,generator, db_name, reset_database = false, cos = true, provider_name="Gemini", version = "v1.0"):
-        self.db_name = db_name
+    def __init__(self,retriever,generator , reset_database = false, cos = true, provider_name="Gemini", version = "v1.0"):
+        # self.db_name = db_name
         self.reset_database = reset_database
         self.version = version
         self.retriever = retriever # Retriever object
         self.generator = generator  # Generator object
         self.session = self._initiate_session()
-        self.index = self._initiate_db()
+        # self.index = self._initiate_db()
         self.cos = cos   # For chain of thought evaluation. More costly 
         self.provider_name = provider_name
         self.provider = self._initiate_provider()
@@ -51,10 +60,10 @@ class RAG_eval:
         
         return session
     
-    def _initiate_db(self):
-        pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
-        index = pc.Index(self.db_name)
-        return index
+    # def _initiate_db(self):
+    #     pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
+    #     index = pc.Index(self.db_name)
+    #     return index
 
     def _initiate_app(self):
         return TruCustomApp(
@@ -154,7 +163,10 @@ class RAG_eval:
         def run(self, questions):
             with self.app as recording:
                 for eval in questions:
-                    self.query(eval["question"])
+                    self.query(eval)
+        
+        def dashboard(self):
+            run_dashboard(session)
 
 
 
