@@ -1,9 +1,0 @@
-2024-11-15 12:49:25,286 - INFO - Initializing FastChunkURLMapper...
-2024-11-15 12:49:25,288 - INFO - Found 0 URL-content pairs
-2024-11-15 12:49:25,288 - INFO - Working with 1427 clean chunks
-2024-11-15 12:51:26,412 - INFO - Initialization took 121.13 seconds
-2024-11-15 12:51:26,412 - INFO - Exporting mapping to url_chunk_mapping.json
-2024-11-15 12:51:26,412 - INFO - Creating LSH buckets...
-2024-11-15 12:51:26,673 - INFO - Processing URL-content pairs...
-2024-11-15 12:51:26,674 - INFO - Mapping completed in 0.26 seconds. Found matches for 0 URLs
-2024-11-15 12:51:26,680 - INFO - Export completed in 0.27 seconds. Total processing time: 121.65 seconds
