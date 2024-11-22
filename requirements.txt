@@ -1,3 +1,4 @@
+absl-py==2.1.0
 aiohappyeyeballs==2.4.3
 aiohttp==3.11.2
 aiolimiter==1.1.0
@@ -161,6 +162,7 @@ requests-toolbelt==1.0.0
 rfc3339-validator==0.1.4
 rfc3986-validator==0.1.1
 rich==13.9.4
+rouge_score==0.1.2
 rpds-py==0.21.0
 rsa==4.9
 scikit-learn==1.5.2

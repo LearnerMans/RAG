@@ -5,9 +5,7 @@ from openai_class.retriever import openai_retriever
 from voyageai_ret.retrieve import voyage_retriever
 from gemini.generator import gemini_generator
 import numpy as np
-from chunker.chunk_repo import chunk_repo
-from utils.utils import process_duplicates
-from utils.utils import FastChunkURLMapper
+
 # from evaluator.evaluator import RAG_eval
 
 
