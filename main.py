@@ -9,15 +9,14 @@ from chunker.chunk_repo import chunk_repo
 from utils.utils import process_duplicates
 from utils.utils import FastChunkURLMapper
 # from evaluator.evaluator import RAG_eval
-from utils.prepare_ground_truth import ecpected_chunk_list
 
 
-print(ecpected_chunk_list)
 
-# query = "What are the requirement documents for the good standing certificate of medical staff in the sector the is fee-exempt for renewal staff licenses?"
-# ret = gemini_retriever()
+query = "What are the requirement documents for the good standing certificate of medical staff in the sector the is fee-exempt for renewal staff licenses?"
+ret = gemini_retriever()
 
-# chunks = ret.get_Chunks(query)
+chunks = ret.get_Chunks(query)
+print(chunks)
 # # gen = gemini_generator()
 # gen = cohere_generator()
 # response = gen.generate(query, chunks)

@@ -63,14 +63,17 @@ class LatestGroundTruthCSV:
         Adds expected chunks to a list based on service URLs and a URL-chunk map.
         """
         expected_chunks = []
-        for url in service_urls:
+        for i,url in enumerate(service_urls):
             if len(url.split(",")) == 1:
                 chunks_list = url_chunk_map[url]
                 expected_chunks.append(chunks_list)
             else:
                 for u in url.split(","):
+                    if len(expected_chunks) < i+1:
+                        chunks_list = url_chunk_map[u.strip()]
+                        expected_chunks.append(chunks_list)
                     chunks_list = url_chunk_map[u.strip()]
-                    expected_chunks.append(chunks_list)
+                    expected_chunks[i].extend(chunks_list)
         return expected_chunks
 
     def get_latest_ground_truth(self):
@@ -95,10 +98,13 @@ class LatestGroundTruthCSV:
         self.ground_truth = ground_truth  # Cache the result
         return ground_truth
 
-# # Example usage
-# csv_filepath = 'GroundTruths_Dataset - Sheet1.csv'
-# json_filepath = 'URL-chunk_map.json'
+# Example usage
+csv_filepath = 'GroundTruths_Dataset - Sheet1.csv'
+json_filepath = 'URL-chunk_map.json'
 
-# processor = LatestGroundTruthCSV(csv_filepath, json_filepath)
-# latest_ground_truth = processor.get_latest_ground_truth()
+processor = LatestGroundTruthCSV(csv_filepath, json_filepath)
+latest_ground_truth = processor.get_latest_ground_truth()
+
+print(latest_ground_truth["expected_chunks"][0])
+
 
