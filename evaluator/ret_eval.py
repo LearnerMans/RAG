@@ -21,13 +21,14 @@ class retriever_evaluator:
         self.feedback = self._feedback_init()
         self.name = name
         self.rag_app = rag_app
+        self.tru_app = self._init_app()
 
 ### Move the addition of the scores  to prepare ground truth 
     def _init_ground_truth(self,ground_truth):
         queries =  ground_truth["query"]
         expected_responses =  ground_truth["expected_response"]
         expected_chunks = ground_truth["expected_chunks"]
-        expected_scores =
+        
         for i in range(len(queries)):
             expected_score = score_retrieved_chunks(queries[i],expected_chunks[i],expected_responses[i])
             expected_chunks[i] = {"text":expected_chunks[i], "title":expected_chunks[i], "score":expected_score}
@@ -103,6 +104,7 @@ class retriever_evaluator:
             app_name=self.name,
             feedbacks=self.feedback,
             )
+            return tru_app
     def run(self ):
         queries = self.ground_truth["query"]
         for query in queries:
